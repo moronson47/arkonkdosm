@@ -1,0 +1,19 @@
+[Unit]
+Description=Konkurs evaluation web app (Gunicorn)
+After=network.target
+Wants=network-online.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/konkurs
+EnvironmentFile=/var/www/konkurs/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/var/www/konkurs/venv/bin/gunicorn --workers 3 --bind unix:/var/www/konkurs/konkurs.sock --access-logfile - --error-logfile - wsgi:app
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Команды — Конкурс{% endblock %}
+{% block subbar %}
+<div class="subbar">
+  <div class="subbar-inner">
+    <span>Выберите команду для оценивания</span>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<h1>Команды</h1>
+<p class="muted">Эксперт видит и оценивает только свои баллы. Оценки других экспертов недоступны.</p>
+
+{% if items %}
+<div class="grid">
+  {% for item in items %}
+    {% set pct = (item.scored * 100 // item.total) if item.total else 0 %}
+    <a class="card card-link" href="{{ url_for('team_stages', team_id=item.team['id']) }}">
+      <div class="card-head">
+        <h3>{{ item.team['name'] }}</h3>
+        <span class="muted nowrap">{{ pct }}%</span>
+      </div>
+      <div class="muted">Оценено {{ item.scored }} из {{ item.total }} критериев</div>
+      <div class="progress"><div class="progress-bar" style="width: {{ pct }}%"></div></div>
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty">Команды ещё не добавлены. Обратитесь к администратору.</div>
+{% endif %}
+{% endblock %}

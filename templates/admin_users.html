@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Пользователи{% endblock %}
+{% block subbar %}
+<div class="subbar">
+  <div class="subbar-inner">
+    <a class="btn btn-light btn-sm" href="{{ url_for('admin_dashboard') }}">← Дашборд</a>
+    <span class="sep">/</span>
+    <strong>Пользователи</strong>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+{% set role_names = {'admin': 'администратор', 'expert': 'эксперт', 'observer': 'наблюдатель'} %}
+<h1>Пользователи</h1>
+
+<div class="card">
+  <h3>Добавить пользователя</h3>
+  <form method="post" action="{{ url_for('admin_user_add') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="login">Логин</label>
+      <input type="text" id="login" name="login" required autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="full_name">ФИО / отображаемое имя</label>
+      <input type="text" id="full_name" name="full_name" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="role">Роль</label>
+      <select id="role" name="role">
+        <option value="expert">Эксперт</option>
+        <option value="observer">Наблюдатель</option>
+        <option value="admin">Администратор</option>
+      </select>
+    </div>
+    <button class="btn" type="submit">Добавить (пароль будет сгенерирован)</button>
+  </form>
+</div>
+
+<h2>Список пользователей</h2>
+{% for user in users %}
+<div class="card">
+  <div class="card-head">
+    <div>
+      <h3>{{ user['full_name'] or user['login'] }}</h3>
+      <div class="muted small">
+        логин: {{ user['login'] }} · роль: {{ role_names.get(user['role'], user['role']) }}
+        · {{ 'активен' if user['is_active'] else 'деактивирован' }}
+        {% if user['last_login'] %}· вход: {{ user['last_login'] }}{% endif %}
+        {% if user['must_change_password'] %}· требуется смена пароля{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <form method="post" action="{{ url_for('admin_user_rename', user_id=user['id']) }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label for="full_name-{{ user['id'] }}">Имя</label>
+        <input type="text" id="full_name-{{ user['id'] }}" name="full_name" value="{{ user['full_name'] }}" style="min-width:180px">
+      </div>
+      <div>
+        <label for="login-{{ user['id'] }}">Логин</label>
+        <input type="text" id="login-{{ user['id'] }}" name="login" value="{{ user['login'] }}" style="min-width:150px">
+      </div>
+      <button class="btn btn-outline btn-sm" type="submit">Сохранить</button>
+    </form>
+
+    <form method="post" action="{{ url_for('admin_user_reset', user_id=user['id']) }}"
+          onsubmit="return confirm('Сбросить пароль пользователя {{ user['login'] }}? Новый пароль будет показан после действия.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-secondary btn-sm" type="submit">Сбросить пароль</button>
+    </form>
+
+    <form method="post" action="{{ url_for('admin_user_toggle', user_id=user['id']) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn {{ 'btn-danger' if user['is_active'] else 'btn-success' }} btn-sm" type="submit">
+        {{ 'Деактивировать' if user['is_active'] else 'Активировать' }}
+      </button>
+    </form>
+  </div>
+</div>
+{% else %}
+<div class="card empty">Пользователей нет.</div>
+{% endfor %}
+{% endblock %}

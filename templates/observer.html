@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Результаты конкурса в реальном времени{% endblock %}
+{% block brand %}Конкурс — результаты{% endblock %}
+{% block subbar %}
+<div class="subbar">
+  <div class="subbar-inner">
+    <span>Онлайн-табло</span>
+    <span class="sep">·</span>
+    <span id="live-status">загрузка…</span>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<h1>Текущие результаты</h1>
+<p class="muted">Средний балл по всем экспертам. Просмотр без возможности изменения.</p>
+
+{% if locked %}
+  <div class="flash info" style="border-radius:10px">
+    Оценивание заблокировано администратором — результаты зафиксированы.
+  </div>
+{% endif %}
+
+<div class="top-actions">
+  <button class="btn btn-outline btn-sm" id="refresh-btn" type="button">Обновить сейчас</button>
+  <button class="btn btn-outline btn-sm" id="pause-btn" type="button">Пауза</button>
+</div>
+
+<div class="table-wrap">
+  <table id="results-table">
+    <thead id="results-head">
+      <tr><th>Команда</th></tr>
+    </thead>
+    <tbody id="results-body">
+      <tr><td class="empty">Загрузка данных…</td></tr>
+    </tbody>
+  </table>
+</div>
+<p class="muted small" id="updated-at"></p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var REFRESH_MS = 15000;
+  var paused = false;
+  var head = document.getElementById('results-head');
+  var body = document.getElementById('results-body');
+  var statusEl = document.getElementById('live-status');
+  var updatedEl = document.getElementById('updated-at');
+
+  function esc(value){
+    return String(value == null ? '' : value).replace(/[&<>"]/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+
+  function intervalLabel(){
+    return 'автообновление каждые ' + (REFRESH_MS / 1000) + ' сек';
+  }
+
+  function render(data){
+    var header = '<tr><th>Команда</th>';
+    data.stages.forEach(function(stage){
+      header += '<th class="num">' + esc(stage.name) + '</th>';
+    });
+    header += '<th class="num">ИТОГО</th></tr>';
+    head.innerHTML = header;
+
+    var rows = '';
+    data.teams.forEach(function(team){
+      rows += '<tr><td><strong>' + esc(team.name) + '</strong></td>';
+      team.cells.forEach(function(cell){
+        rows += '<td class="num">' + cell.avg +
+                '<div class="muted small">экспертов: ' + cell.count +
+                (cell.last ? '<br>' + esc(cell.last) : '') + '</div></td>';
+      });
+      rows += '<td class="num"><strong>' + team.total + '</strong></td></tr>';
+    });
+    body.innerHTML = rows || '<tr><td class="empty">Нет данных.</td></tr>';
+    updatedEl.textContent = 'Обновлено: ' + data.generated_at;
+    if (!paused) statusEl.textContent = intervalLabel();
+  }
+
+  function load(){
+    fetch('/api/results', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function(response){
+        if (!response.ok) throw new Error(response.status);
+        return response.json();
+      })
+      .then(function(data){ if (data.ok) render(data); })
+      .catch(function(){ statusEl.textContent = '⚠ нет связи'; });
+  }
+
+  document.getElementById('refresh-btn').addEventListener('click', load);
+  document.getElementById('pause-btn').addEventListener('click', function(){
+    paused = !paused;
+    this.textContent = paused ? 'Продолжить' : 'Пауза';
+    statusEl.textContent = paused ? 'обновление приостановлено' : intervalLabel();
+  });
+
+  load();
+  setInterval(function(){ if (!paused) load(); }, REFRESH_MS);
+})();
+</script>
+{% endblock %}

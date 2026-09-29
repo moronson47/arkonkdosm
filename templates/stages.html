@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}{{ team['name'] }} — этапы{% endblock %}
+{% block subbar %}
+<div class="subbar">
+  <div class="subbar-inner">
+    <a class="btn btn-light btn-sm" href="{{ url_for('teams') }}">← Команды</a>
+    <span class="sep">/</span>
+    <strong>{{ team['name'] }}</strong>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<h1>{{ team['name'] }}</h1>
+<p class="muted">Выберите этап. Показаны только ваши баллы.</p>
+
+{% for item in items %}
+  {% set pct = (item.scored * 100 // item.total) if item.total else 0 %}
+  <a class="card card-link" href="{{ url_for('checklist', team_id=team['id'], stage_id=item.stage['id']) }}">
+    <div class="card-head">
+      <h3>{{ item.stage['name'] }}</h3>
+      <span class="max-badge">{{ item.sum }} / {{ item.max }}</span>
+    </div>
+    <div class="muted">Оценено {{ item.scored }} из {{ item.total }} критериев</div>
+    <div class="progress"><div class="progress-bar" style="width: {{ pct }}%"></div></div>
+  </a>
+{% endfor %}
+{% endblock %}

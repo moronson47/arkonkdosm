@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Детальные результаты{% endblock %}
+{% block subbar %}
+<div class="subbar">
+  <div class="subbar-inner">
+    <a class="btn btn-light btn-sm" href="{{ url_for('admin_dashboard') }}">← Дашборд</a>
+    <span class="sep">/</span>
+    <strong>Детально</strong>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<h1>Детальные результаты</h1>
+<p class="muted">Суммы баллов по каждому эксперту, команде и этапу.</p>
+
+{% for team in report %}
+  <h2>{{ team.team['name'] }}</h2>
+  {% if team.stages %}
+    {% for stage in team.stages %}
+      <h3>{{ stage.stage['name'] }}</h3>
+      <div class="table-wrap" style="margin-bottom:14px">
+        <table>
+          <thead>
+            <tr>
+              <th>Эксперт</th>
+              <th class="num">Сумма баллов</th>
+              <th class="num">Оценено критериев</th>
+              <th class="num">Последнее изменение</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in stage.experts %}
+            <tr>
+              <td>{{ row.expert['full_name'] or row.expert['login'] }}</td>
+              <td class="num">{{ row.total }}</td>
+              <td class="num">{{ row.scored }}</td>
+              <td class="num">{{ row.last or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card empty">Оценок пока нет.</div>
+  {% endif %}
+{% else %}
+<div class="card empty">Команд нет.</div>
+{% endfor %}
+{% endblock %}

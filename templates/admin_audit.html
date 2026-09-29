@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Журнал действий{% endblock %}
+{% block subbar %}
+<div class="subbar">
+  <div class="subbar-inner">
+    <a class="btn btn-light btn-sm" href="{{ url_for('admin_dashboard') }}">← Дашборд</a>
+    <span class="sep">/</span>
+    <strong>Журнал действий</strong>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<h1>Журнал действий</h1>
+<p class="muted">Последние 500 записей.</p>
+
+<div class="card">
+  <form method="get" action="{{ url_for('admin_audit') }}">
+    <div class="field">
+      <label for="user_id">Пользователь</label>
+      <select name="user_id" id="user_id">
+        <option value="">— все —</option>
+        {% for user in users %}
+          <option value="{{ user['id'] }}" {% if selected_user == user['id'] %}selected{% endif %}>
+            {{ user['full_name'] or user['login'] }} ({{ user['login'] }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="date_from">Дата с</label>
+      <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+    </div>
+    <div class="field">
+      <label for="date_to">Дата по</label>
+      <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+    </div>
+    <div class="btn-row">
+      <button class="btn" type="submit">Применить фильтр</button>
+      <a class="btn btn-outline" href="{{ url_for('admin_audit') }}">Сбросить</a>
+    </div>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Время</th>
+        <th>Пользователь</th>
+        <th>Действие</th>
+        <th>Детали</th>
+        <th>IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in records %}
+      <tr>
+        <td class="nowrap">{{ record['created_at'] }}</td>
+        <td>{{ record['user_name'] or record['user_login'] or '—' }}</td>
+        <td>{{ record['action'] }}</td>
+        <td>{{ record['details'] or '' }}</td>
+        <td class="nowrap">{{ record['ip'] or '' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="empty">Записей нет.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

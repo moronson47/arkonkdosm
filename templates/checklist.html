@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% block title %}{{ team['name'] }} — {{ stage['name'] }}{% endblock %}
+{% block subbar %}
+<div class="subbar">
+  <div class="subbar-inner">
+    <a class="btn btn-light btn-sm" href="{{ url_for('team_stages', team_id=team['id']) }}">← Этапы</a>
+    <span class="sep">/</span>
+    <strong>{{ team['name'] }}</strong>
+    <span class="sep">·</span>
+    <span>{{ stage['name'] }}</span>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="progress-sticky">
+  <div class="card-head">
+    <div>
+      <h1 style="margin-bottom:2px">{{ stage['name'] }}</h1>
+      <div class="muted">{{ team['name'] }}</div>
+    </div>
+    <span class="max-badge">{{ scored }} / {{ total }}</span>
+  </div>
+  <div class="muted" id="progress-text">Оценено {{ scored }} из {{ total }}</div>
+  <div class="progress"><div class="progress-bar" id="progress-bar" style="width: {{ (scored * 100 // total) if total else 0 }}%"></div></div>
+</div>
+
+{% if locked %}
+  <div class="flash error" style="border-radius:10px">
+    Оценивание заблокировано администратором. Изменения недоступны.
+  </div>
+{% endif %}
+
+{% for block in blocks %}
+  <div class="block-title">{{ block['block']['name'] }}</div>
+  {% for item in block['items'] %}
+    <div class="criterion" data-criterion="{{ item.criterion['id'] }}" data-max="{{ item.criterion['max_score'] }}">
+      <div class="criterion-head">
+        <div class="criterion-name">{{ item.criterion['name'] }}</div>
+        <span class="max-badge">макс. {{ item.criterion['max_score'] }}</span>
+      </div>
+      <div class="criterion-desc">{{ item.criterion['description'] }}</div>
+
+      <div class="score-row">
+        <button type="button" class="step-btn" data-act="minus" {% if locked %}disabled{% endif %} aria-label="Уменьшить">−</button>
+        <input type="number" class="score-input" inputmode="numeric" pattern="[0-9]*" step="1"
+               min="0" max="{{ item.criterion['max_score'] }}"
+               value="{{ item.value if item.value is not none else '' }}"
+               {% if locked %}disabled{% endif %}>
+        <button type="button" class="step-btn" data-act="plus" {% if locked %}disabled{% endif %} aria-label="Увеличить">+</button>
+        <button type="button" class="max-btn" data-act="max" {% if locked %}disabled{% endif %}>макс</button>
+      </div>
+
+      <label class="comment-label" for="comment-{{ item.criterion['id'] }}">Комментарий (необязательно)</label>
+      <textarea class="comment" id="comment-{{ item.criterion['id'] }}" maxlength="500"
+                placeholder="До 500 символов" {% if locked %}disabled{% endif %}>{{ item.comment }}</textarea>
+      <div class="save-status"></div>
+    </div>
+  {% endfor %}
+{% endfor %}
+
+{% if not locked %}
+<p class="muted small">Баллы сохраняются автоматически. Допустимы целые значения от 0 до максимума по критерию.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var TEAM_ID = {{ team['id'] }};
+  var LOCKED = {{ 'true' if locked else 'false' }};
+  var CSRF = document.querySelector('meta[name="csrf-token"]').content;
+  var inputs = Array.prototype.slice.call(document.querySelectorAll('.score-input'));
+  var progressText = document.getElementById('progress-text');
+  var progressBar = document.getElementById('progress-bar');
+
+  function updateProgress(){
+    var done = 0;
+    inputs.forEach(function(i){ if (i.value !== '') done++; });
+    progressText.textContent = 'Оценено ' + done + ' из ' + inputs.length;
+    progressBar.style.width = (inputs.length ? (done * 100 / inputs.length) : 0) + '%';
+  }
+
+  function payloadOf(row){
+    return JSON.stringify([
+      row.querySelector('.score-input').value,
+      row.querySelector('.comment').value
+    ]);
+  }
+
+  function clampInput(row){
+    var input = row.querySelector('.score-input');
+    if (input.value === '') return;
+    var max = parseInt(input.dataset.max, 10);
+    var v = parseInt(input.value, 10);
+    if (isNaN(v)) v = 0;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    input.value = v;
+  }
+
+  function saveRow(row){
+    if (LOCKED) return;
+    var payload = payloadOf(row);
+    if (row.dataset.lastPayload === payload) return;
+
+    var input = row.querySelector('.score-input');
+    var comment = row.querySelector('.comment');
+    var status = row.querySelector('.save-status');
+    var body = {
+      team_id: TEAM_ID,
+      criterion_id: parseInt(row.dataset.criterion, 10),
+      value: input.value === '' ? null : parseInt(input.value, 10),
+      comment: comment.value
+    };
+
+    status.className = 'save-status saving';
+    status.textContent = '… сохранение';
+
+    fetch('/api/score', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': CSRF,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify(body)
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(data){
+        if (!res.ok) {
+          var err = new Error(data.error || ('Ошибка ' + res.status));
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      });
+    }).then(function(data){
+      row.dataset.lastPayload = payloadOf(row);
+      status.className = 'save-status ok';
+      status.textContent = '✓ сохранено';
+      updateProgress();
+      clearTimeout(row.hideTimer);
+      row.hideTimer = setTimeout(function(){
+        if (status.className.indexOf('ok') !== -1) {
+          status.textContent = '';
+          status.className = 'save-status';
+        }
+      }, 1500);
+    }).catch(function(err){
+      clearTimeout(row.retryTimer);
+      status.className = 'save-status err';
+      if (err && err.status === 403) {
+        status.textContent = '⚠ ' + (err.message || 'оценивание недоступно');
+        return;
+      }
+      status.textContent = '⚠ нет связи';
+      row.retryTimer = setTimeout(function(){ saveRow(row); }, 3000);
+    });
+  }
+
+  Array.prototype.slice.call(document.querySelectorAll('.criterion')).forEach(function(row){
+    if (LOCKED) return;
+    var input = row.querySelector('.score-input');
+    var comment = row.querySelector('.comment');
+    row.dataset.lastPayload = payloadOf(row);
+
+    Array.prototype.slice.call(row.querySelectorAll('[data-act]')).forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var max = parseInt(input.dataset.max, 10);
+        var cur = parseInt(input.value, 10);
+        if (isNaN(cur)) cur = 0;
+        var act = btn.dataset.act;
+        if (act === 'minus') input.value = Math.max(0, cur - 1);
+        else if (act === 'plus') input.value = Math.min(max, cur + 1);
+        else input.value = max;
+        saveRow(row);
+      });
+    });
+
+    input.addEventListener('change', function(){ clampInput(row); saveRow(row); });
+    input.addEventListener('blur', function(){ clampInput(row); saveRow(row); });
+
+    comment.addEventListener('input', function(){
+      clearTimeout(row.commentTimer);
+      row.commentTimer = setTimeout(function(){ saveRow(row); }, 700);
+    });
+    comment.addEventListener('blur', function(){
+      clearTimeout(row.commentTimer);
+      saveRow(row);
+    });
+  });
+
+  updateProgress();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Вход — Конкурс профессионального мастерства{% endblock %}
+{% block brand %}Конкурс профмастерства{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="card">
+    <div class="logo">
+      <img class="logo-badge" src="{{ url_for('static', filename='img/ar-logo.svg') }}" alt="Аэропорты Регионов">
+      <div>
+        <div class="login-title">Конкурс профессионального мастерства</div>
+        <div class="muted small">инспекторов по досмотру · Аэропорты Регионов</div>
+      </div>
+    </div>
+
+    <form method="post" action="{{ url_for('login') }}" autocomplete="on">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
+
+      <div class="field">
+        <label for="login">Логин</label>
+        <input type="text" id="login" name="login" autocomplete="username" required autofocus>
+      </div>
+
+      <div class="field">
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+
+      <button class="btn btn-block" type="submit">Войти</button>
+    </form>
+  </div>
+  <p class="muted small" style="text-align:center">
+    Доступ только для экспертов и администратора конкурса.<br>
+    <a href="{{ url_for('index') }}">← На главную страницу конкурса</a>
+  </p>
+</div>
+{% endblock %}

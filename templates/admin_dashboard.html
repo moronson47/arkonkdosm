@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Дашборд администратора{% endblock %}
+{% block subbar %}
+<div class="subbar">
+  <div class="subbar-inner">
+    <span>Сводка результатов конкурса</span>
+    {% if locked %}<span class="sep">·</span><strong>Оценивание заблокировано</strong>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<h1>Дашборд</h1>
+<p class="muted">Средний балл по всем экспертам. Активных экспертов: {{ experts }}.</p>
+
+<div class="top-actions">
+  <a class="btn btn-outline btn-sm" href="{{ url_for('admin_teams') }}">Команды</a>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('admin_users') }}">Пользователи</a>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('admin_results') }}">Детально</a>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('admin_audit') }}">Журнал</a>
+  <a class="btn btn-success btn-sm" href="{{ url_for('admin_export') }}">Экспорт Excel</a>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('admin_backup') }}">Резервная копия</a>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <h3>Блокировка оценивания</h3>
+      <div class="muted small">
+        {% if locked %}Эксперты сейчас не могут изменять баллы.{% else %}Эксперты могут вносить и изменять баллы.{% endif %}
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('admin_lock') }}"
+          onsubmit="return confirm('{{ 'Разблокировать оценивание?' if locked else 'Заблокировать оценивание? Эксперты не смогут вносить изменения.' }}');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="return_to" value="{{ url_for('admin_dashboard') }}">
+      <button class="btn {{ 'btn-success' if locked else 'btn-danger' }} btn-sm" type="submit">
+        {{ 'Разблокировать' if locked else 'Заблокировать оценивание' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Сброс оценок</h3>
+  <form method="post" action="{{ url_for('admin_reset') }}" onsubmit="return confirm('Вы уверены? Действие необратимо.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="scope">Что сбросить</label>
+      <select name="scope" id="scope" onchange="toggleResetFields(this.value)">
+        <option value="all">Все оценки</option>
+        <option value="expert">Оценки конкретного эксперта</option>
+        <option value="team">Оценки конкретной команды</option>
+      </select>
+    </div>
+    <div class="field" id="expert-field" style="display:none">
+      <label for="expert_id">Эксперт</label>
+      <select name="expert_id" id="expert_id">
+        <option value="">— выберите эксперта —</option>
+        {% for user in expert_list %}
+          <option value="{{ user['id'] }}">{{ user['full_name'] or user['login'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field" id="team-field" style="display:none">
+      <label for="team_id">Команда</label>
+      <select name="team_id" id="team_id">
+        <option value="">— выберите команду —</option>
+        {% for team in teams %}
+          <option value="{{ team['id'] }}">{{ team['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-danger btn-sm" type="submit">Сбросить оценки</button>
+  </form>
+</div>
+
+<h2>Сводная таблица</h2>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Команда</th>
+        {% for stage in stages %}<th class="num">{{ stage['name'] }}</th>{% endfor %}
+        <th class="num">ИТОГО</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in grid %}
+      <tr>
+        <td><strong>{{ row.team['name'] }}</strong></td>
+        {% for cell in row.cells %}
+          <td class="num">
+            {{ cell.avg }}
+            <div class="muted small">экспертов: {{ cell.count }}{% if cell.last %}<br>{{ cell.last }}{% endif %}</div>
+          </td>
+        {% endfor %}
+        <td class="num"><strong>{{ row.total }}</strong></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="{{ stages|length + 2 }}" class="empty">Нет данных.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function toggleResetFields(value){
+  document.getElementById('expert-field').style.display = (value === 'expert') ? 'block' : 'none';
+  document.getElementById('team-field').style.display = (value === 'team') ? 'block' : 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Команды{% endblock %}
+{% block subbar %}
+<div class="subbar">
+  <div class="subbar-inner">
+    <a class="btn btn-light btn-sm" href="{{ url_for('admin_dashboard') }}">← Дашборд</a>
+    <span class="sep">/</span>
+    <strong>Команды</strong>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<h1>Команды</h1>
+
+<div class="card">
+  <h3>Добавить команду</h3>
+  <form method="post" action="{{ url_for('admin_team_add') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="name">Название команды</label>
+      <input type="text" id="name" name="name" required autocomplete="off">
+    </div>
+    <button class="btn" type="submit">Добавить команду</button>
+  </form>
+</div>
+
+<h2>Список команд</h2>
+{% for team in teams %}
+<div class="card">
+  <div class="btn-row" style="margin:0">
+    <form method="post" action="{{ url_for('admin_team_rename', team_id=team['id']) }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label for="name-{{ team['id'] }}">Название</label>
+        <input type="text" id="name-{{ team['id'] }}" name="name" value="{{ team['name'] }}" style="min-width:220px">
+      </div>
+      <button class="btn btn-outline btn-sm" type="submit">Сохранить</button>
+    </form>
+    <form method="post" action="{{ url_for('admin_team_delete', team_id=team['id']) }}"
+          onsubmit="return confirm('Удалить команду «{{ team['name'] }}» и все её оценки?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
+    </form>
+  </div>
+</div>
+{% else %}
+<div class="card empty">Команд нет.</div>
+{% endfor %}
+{% endblock %}

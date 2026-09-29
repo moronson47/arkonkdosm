@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#199BAD">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>{% block title %}Аэропорты Регионов — Конкурс профессионального мастерства{% endblock %}</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/ar-logo.svg') }}">
+<style>
+  :root{
+    --primary:#199BAD;
+    --primary-dark:#0f7d8c;
+    --accent:#0098db;
+    --bg:#eef4f6;
+    --card:#ffffff;
+    --text:#0b2a33;
+    --muted:#5b7480;
+    --border:#d8e3e7;
+    --success:#1a9e57;
+    --danger:#d43b3b;
+    --warning:#b8860b;
+    --radius:14px;
+    --shadow:0 1px 3px rgba(6,40,50,.08),0 6px 18px rgba(6,40,50,.06);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:17px;
+    line-height:1.45;
+    padding-bottom:40px;
+  }
+  a{color:var(--primary);text-decoration:none}
+  h1{font-size:1.35rem;margin:0 0 14px}
+  h2{font-size:1.1rem;margin:22px 0 10px}
+  h3{font-size:1rem;margin:0 0 8px}
+  .wrap{max-width:1100px;margin:0 auto;padding:14px}
+  .muted{color:var(--muted);font-size:.85rem}
+  .small{font-size:.82rem}
+
+  /* Header */
+  .topbar{position:sticky;top:0;z-index:50;background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:1100px;margin:0 auto;padding:10px 14px;min-height:56px}
+  .brand{color:#fff;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;min-width:0}
+  .brand svg{flex:0 0 auto}
+  .bar-right{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+  .who{font-size:.85rem;opacity:.92;max-width:38vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .subbar{background:rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.2)}
+  .subbar-inner{max-width:1100px;margin:0 auto;padding:8px 14px;font-size:.9rem;color:#fff;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .subbar-inner .sep{opacity:.6}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:10px 16px;
+    border:1px solid transparent;border-radius:10px;background:var(--primary);color:#fff;font-size:1rem;font-weight:600;
+    cursor:pointer;font-family:inherit;text-align:center;line-height:1.1}
+  .btn:active{transform:translateY(1px)}
+  .btn-outline{background:#fff;color:var(--primary);border-color:var(--border)}
+  .btn-light{background:rgba(255,255,255,.9);color:var(--primary);border-color:transparent}
+  .btn-secondary{background:#5b6675}
+  .btn-danger{background:var(--danger)}
+  .btn-success{background:var(--success)}
+  .btn-sm{min-height:36px;padding:6px 12px;font-size:.85rem;border-radius:8px}
+  .btn-block{width:100%}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+  .card-link{display:block;color:inherit;transition:box-shadow .15s,border-color .15s}
+  .card-link:hover{border-color:#c9d6ea}
+  .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+
+  /* Progress */
+  .progress{height:10px;background:#e6ebf3;border-radius:999px;overflow:hidden;margin-top:10px}
+  .progress-bar{height:100%;background:linear-gradient(90deg,#199BAD,#39c1d4);border-radius:999px;transition:width .2s}
+
+  /* Forms */
+  .field{margin-bottom:14px}
+  label{display:block;font-weight:600;margin-bottom:6px;font-size:.95rem}
+  input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{
+    width:100%;font-size:17px;font-family:inherit;color:var(--text);background:#fff;
+    border:1px solid var(--border);border-radius:10px;padding:11px 12px;min-height:46px}
+  textarea{min-height:60px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:2px solid #bfe6ec;border-color:var(--primary)}
+  input[type=number]{-moz-appearance:textfield}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+  /* Tables */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--border);background:#fff}
+  table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:520px}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+  th{background:#e9f4f7;font-weight:700;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right;white-space:nowrap}
+
+  /* Flash */
+  .flashes{margin-bottom:12px}
+  .flash{border-radius:10px;padding:11px 14px;margin-bottom:10px;font-size:.92rem;border:1px solid}
+  .flash.success{background:#e8f7ef;border-color:#b6e3ca;color:#12683a}
+  .flash.error{background:#fdecec;border-color:#f2c3c3;color:#a12626}
+  .flash.info{background:#eaf2ff;border-color:#c4d8fb;color:#1a4a94}
+
+  /* Checklist */
+  .block-title{background:#e9f4f7;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-weight:700;margin:18px 0 10px}
+  .criterion{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+  .criterion-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .criterion-name{font-weight:600}
+  .max-badge{background:#e9f4f7;color:var(--primary-dark);border-radius:999px;padding:3px 10px;font-size:.8rem;font-weight:700;white-space:nowrap}
+  .criterion-desc{color:var(--muted);font-size:.85rem;margin:6px 0 10px}
+  .score-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .score-input{flex:1;text-align:center;font-size:20px;font-weight:700;min-width:70px}
+  .step-btn{min-width:48px;min-height:46px;padding:0;font-size:1.3rem;font-weight:700;background:#e9f4f7;color:var(--primary-dark);border:1px solid var(--border);border-radius:10px}
+  .max-btn{min-height:46px;padding:0 14px;background:#e9f4f7;color:var(--primary-dark);border:1px solid var(--border);border-radius:10px;font-weight:700}
+  .comment-label{font-size:.85rem;color:var(--muted);font-weight:600;margin-bottom:4px;display:block}
+  .save-status{font-size:.82rem;min-height:18px;display:inline-block;margin-top:6px}
+  .save-status.ok{color:var(--success)}
+  .save-status.err{color:var(--danger)}
+  .save-status.saving{color:var(--muted)}
+  .progress-sticky{position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0}
+  .offline-banner{position:fixed;left:0;right:0;bottom:0;background:var(--danger);color:#fff;text-align:center;padding:10px;font-weight:600;z-index:100;display:none}
+
+  /* Login */
+  .login-wrap{max-width:420px;margin:6vh auto;padding:16px}
+  .logo{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .logo-badge{width:52px;height:52px;flex:0 0 auto}
+  .login-title{font-size:1.15rem;font-weight:700;line-height:1.2}
+
+  /* Misc */
+  .top-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+  .empty{color:var(--muted);text-align:center;padding:26px 10px}
+  .stat-big{font-size:1.5rem;font-weight:700}
+  .nowrap{white-space:nowrap}
+  form.inline{display:inline}
+  @media (min-width:760px){
+    body{font-size:17px}
+    .wrap{padding:20px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+    .grid .card{margin-bottom:0}
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="bar">
+    <a class="brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/ar-logo-white.svg') }}" width="30" height="30" alt="Аэропорты Регионов">
+      <span>{% block brand %}Аэропорты Регионов{% endblock %}</span>
+    </a>
+    {% if g.user %}
+    <div class="bar-right">
+      <span class="who">{{ g.user['full_name'] or g.user['login'] }}</span>
+      <a class="btn btn-light btn-sm" href="{{ url_for('logout') }}">Выход</a>
+    </div>
+    {% else %}
+    <div class="bar-right">
+      <a class="btn btn-light btn-sm" href="{{ url_for('login') }}">Авторизация</a>
+    </div>
+    {% endif %}
+  </div>
+  {% block subbar %}{% endblock %}
+</header>
+
+<div class="wrap">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, message in messages %}
+          <div class="flash {{ category if category in ['success','error','info'] else 'info' }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<div id="offline-banner" class="offline-banner">⚠ нет связи — изменения сохранятся автоматически при восстановлении</div>
+
+<script>
+  (function(){
+    var banner = document.getElementById('offline-banner');
+    function update(){
+      if (!banner) return;
+      banner.style.display = navigator.onLine ? 'none' : 'block';
+    }
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    update();
+  })();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
